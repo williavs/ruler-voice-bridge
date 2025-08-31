@@ -1,0 +1,17 @@
+# Ruler Voice Bridge Requirements
+# Core dependencies for TTS server
+
+# Web framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# TTS Engine
+piper-tts>=1.2.0
+
+# Audio processing
+wave
+numpy>=1.24.0
+
+# Optional but recommended
+python-multipart  # For file uploads if needed
+python-dotenv     # For environment variable management

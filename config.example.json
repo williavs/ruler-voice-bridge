@@ -1,0 +1,17 @@
+{
+  "host": "0.0.0.0",
+  "port": 9003,
+  "default_voice": "amy",
+  "voice_dir": "~/.piper/voices",
+  "voice_models": {
+    "amy": "en_US-amy-medium.onnx",
+    "danny": "en_US-danny-low.onnx",
+    "kathleen": "en_US-kathleen-low.onnx",
+    "ryan": "en_US-ryan-medium.onnx",
+    "lessac": "en_US-lessac-medium.onnx",
+    "libritts": "en_US-libritts-high.onnx"
+  },
+  "audio_backend": "auto",
+  "silence_padding": 0.2,
+  "log_level": "info"
+}

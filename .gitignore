@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Configuration
+config.json
+!config.example.json
+
+# Voice models (large files)
+voices/
+*.onnx
+*.onnx.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.temp
+*.wav
+temp/
+
+# System
+.systemd/
+*.service
+!ruler-voice.service

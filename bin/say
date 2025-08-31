@@ -1,0 +1,100 @@
+#!/bin/bash
+# Ruler Voice Bridge - CLI interface for TTS
+# Usage: say "Hello world!" or say -v danny "Hello world!"
+# Can also use positional: say "message" voice
+
+# Configuration from environment or defaults
+TTS_SERVER="${RULER_VOICE_SERVER:-http://localhost:9003}"
+DEFAULT_VOICE="${RULER_VOICE_DEFAULT:-amy}"
+
+# Parse arguments
+voice=""
+message=""
+
+# Check for -v flag format
+if [ "$1" = "-v" ] && [ "$#" -ge 3 ]; then
+    voice="$2"
+    shift 2  # Remove -v and voice name
+    message="$*"
+# Check for positional format (message voice)
+elif [ "$#" -eq 2 ]; then
+    message="$1"
+    voice="$2"
+# Single argument is just the message
+elif [ "$#" -eq 1 ]; then
+    message="$1"
+    voice="$DEFAULT_VOICE"
+fi
+
+# Check if message is empty
+if [ -z "$message" ]; then
+    echo "Ruler Voice Bridge - Text-to-Speech CLI"
+    echo ""
+    echo "Usage:"
+    echo "  say <message>                    # Use default voice"
+    echo "  say <message> <voice>            # Specify voice"
+    echo "  say -v <voice> <message>         # Alternative format"
+    echo ""
+    echo "Examples:"
+    echo "  say 'System is healthy'"
+    echo "  say 'Build complete' danny"
+    echo "  say -v kathleen 'Critical alert'"
+    echo ""
+    echo "Available voices:"
+    echo "  amy      - Natural female voice (default)"
+    echo "  danny    - Clear male voice"
+    echo "  kathleen - Professional female voice"
+    echo "  ryan     - Deep male voice"
+    echo "  lessac   - Alternative voice"
+    echo "  libritts - High quality voice"
+    echo ""
+    echo "Environment variables:"
+    echo "  RULER_VOICE_SERVER - TTS server URL (default: http://localhost:9003)"
+    echo "  RULER_VOICE_DEFAULT - Default voice (default: amy)"
+    exit 1
+fi
+
+# Check for required tools
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl is required but not installed" >&2
+    exit 1
+fi
+
+# URL encode the message
+# Use jq if available, otherwise use a simple replacement
+if command -v jq &> /dev/null; then
+    encoded_message=$(printf '%s\n' "$message" | jq -sRr @uri)
+else
+    # Simple URL encoding for common characters
+    encoded_message=$(echo "$message" | sed 's/ /%20/g; s/!/%21/g; s/"/%22/g; s/#/%23/g; s/\$/%24/g; s/&/%26/g; s/'"'"'/%27/g; s/(/%28/g; s/)/%29/g; s/\*/%2A/g; s/+/%2B/g; s/,/%2C/g; s/:/%3A/g; s/;/%3B/g; s/=/%3D/g; s/?/%3F/g; s/@/%40/g; s/\[/%5B/g; s/\]/%5D/g')
+fi
+
+# Build URL with optional voice parameter
+url="${TTS_SERVER}/play?text=${encoded_message}"
+if [ -n "$voice" ] && [ "$voice" != "$DEFAULT_VOICE" ]; then
+    url="${url}&voice=${voice}"
+fi
+
+# Send to TTS server with error handling
+response=$(curl -s -w "\n%{http_code}" "$url" 2>&1)
+http_code=$(echo "$response" | tail -n1)
+body=$(echo "$response" | head -n-1)
+
+if [ "$http_code" = "200" ]; then
+    # Success - audio played
+    exit 0
+elif [ "$http_code" = "000" ]; then
+    echo "Error: Cannot connect to TTS server at $TTS_SERVER" >&2
+    echo "Make sure the server is running: python server.py" >&2
+    exit 1
+else
+    # Parse error message from JSON if possible
+    if command -v jq &> /dev/null && echo "$body" | jq -e . >/dev/null 2>&1; then
+        error=$(echo "$body" | jq -r '.detail // .error // .message // "Unknown error"')
+        echo "TTS Error: $error" >&2
+    else
+        echo "TTS Error: Server returned $http_code" >&2
+        [ -n "$body" ] && echo "$body" >&2
+    fi
+    exit 1
+fi
